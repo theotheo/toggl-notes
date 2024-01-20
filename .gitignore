@@ -1,0 +1,9 @@
+# VSCode
+.vscode
+.history/
+
+# npm
+node_modules
+
+# build
+/dist
