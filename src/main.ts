@@ -1,1 +1,1 @@
-export { default } from "./TogglIntegrationPlugin.ts";
+export { default } from "./TogglNotesPlugin.ts";

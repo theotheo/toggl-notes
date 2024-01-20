@@ -2,23 +2,23 @@ import moment from "moment";
 import { Plugin, Notice, App, PluginSettingTab, Setting } from "obsidian";
 import { Toggl } from 'toggl-track';
 
-interface TogglIntegrationSettings {
+interface TogglNotesSettings {
   apiToken: string;
 }
 
-const DEFAULT_SETTINGS: Partial<TogglIntegrationSettings> = {
+const DEFAULT_SETTINGS: Partial<TogglNotesSettings> = {
   // apiToken: "",
 };
 
-export default class TogglIntegrationPlugin extends Plugin {
-  settings: TogglIntegrationSettings;
+export default class TogglNotesPlugin extends Plugin {
+  settings: TogglNotesSettings;
 
   public override async onload(): Promise<void>  {
     this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
 
     await this.loadSettings();
 
-    this.addSettingTab(new TogglIntegrationTab(this.app, this));
+    this.addSettingTab(new TogglNotesTab(this.app, this));
 
     const toggl = new Toggl({
       auth: {
@@ -91,10 +91,10 @@ export default class TogglIntegrationPlugin extends Plugin {
 }
 
 
-export class TogglIntegrationTab extends PluginSettingTab {
-  plugin: TogglIntegrationPlugin;
+export class TogglNotesTab extends PluginSettingTab {
+  plugin: TogglNotesPlugin;
 
-  constructor(app: App, plugin: TogglIntegrationPlugin) {
+  constructor(app: App, plugin: TogglNotesPlugin) {
     super(app, plugin);
     this.plugin = plugin;
   }

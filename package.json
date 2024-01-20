@@ -1,7 +1,7 @@
 {
-  "name": "toggl-integration",
-  "version": "1.0.0",
-  "description": "Integrate toggl into your notetaking",
+  "name": "toggl-notes",
+  "version": "0.0.1",
+  "description": "Integrate Toggl time tracking into note-taking",
   "scripts": {
     "build": "tsc --build && tsx esbuild.config.ts production",
     "dev": "tsc --build && tsx esbuild.config.ts",
