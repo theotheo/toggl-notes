@@ -11,7 +11,8 @@ const DEFAULT_SETTINGS: Partial<TogglNotesSettings> = {
 };
 
 export default class TogglNotesPlugin extends Plugin {
-  settings: TogglNotesSettings;
+  settings!: TogglNotesSettings;
+
 
   public override async onload(): Promise<void>  {
     this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
@@ -92,7 +93,7 @@ export default class TogglNotesPlugin extends Plugin {
 
 
 export class TogglNotesTab extends PluginSettingTab {
-  plugin: TogglNotesPlugin;
+  override plugin: TogglNotesPlugin;
 
   constructor(app: App, plugin: TogglNotesPlugin) {
     super(app, plugin);
