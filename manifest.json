@@ -1,7 +1,7 @@
 {
   "id": "toggl-notes",
   "name": "Toggl Notes",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "minAppVersion": "0.15.0",
   "description": "Integrate Toggl time tracking into note-taking",
   "author": "theotheo",
