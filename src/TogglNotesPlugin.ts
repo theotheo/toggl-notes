@@ -4,12 +4,15 @@ import {
   App,
   PluginSettingTab,
   Setting,
-  TFile
+  TFile,
+  ButtonComponent,
+  TextComponent
 } from "obsidian";
 import TogglApiClient, { ITimeEntry } from "./TogglClient.js"
 
 interface TogglNotesSettings {
   apiToken: string;
+  defaultWorkspaceId: number;
 }
 
 const DEFAULT_SETTINGS: Partial<TogglNotesSettings> = {
@@ -18,18 +21,17 @@ const DEFAULT_SETTINGS: Partial<TogglNotesSettings> = {
 
 class TogglManager {
   private client: TogglApiClient;
+  public defaultWorkspaceId!: number;
 
-  constructor(token: string) {
+  constructor(token: string, defaultWorkspaceId: number | undefined = undefined) {
+    if (defaultWorkspaceId) {
+      this.defaultWorkspaceId = defaultWorkspaceId
+    }
     this.client = new TogglApiClient(token);
   }
 
   public async startTimer(description: string): Promise<ITimeEntry> {
-    const userInfo = await this.client.getUserInfo()
-    const defaultWorkspaceId = userInfo["default_workspace_id"];
-
-    const timeEntry = await this.client.createTimeEntry(description, defaultWorkspaceId)
-
-    return timeEntry;
+    return await this.client.createTimeEntry(description, this.defaultWorkspaceId)
   }
 
   public async stopTimer(): Promise<boolean> {
@@ -44,6 +46,9 @@ class TogglManager {
     return false;
   }
 
+  public async getUserInfo() {
+    return await this.client.getUserInfo()
+  }
 }
 
 class FrontMatterManager {
@@ -66,6 +71,7 @@ export default class TogglNotesPlugin extends Plugin {
   settings!: TogglNotesSettings;
   togglManager!: TogglManager;
   frontmatter!: FrontMatterManager;
+  statusBarItem!: HTMLElement;
 
   public override async onload(): Promise<void> {
     this.app.workspace.onLayoutReady(this.onLayoutReady.bind(this));
@@ -73,8 +79,8 @@ export default class TogglNotesPlugin extends Plugin {
     await this.loadSettings();
 
     this.addSettingTab(new TogglNotesTab(this.app, this));
-    
-    this.togglManager = new TogglManager(this.settings.apiToken);    
+    this.statusBarItem = this.addStatusBarItem()
+
     this.frontmatter = new FrontMatterManager(this.app);
 
     this.addCommand({
@@ -87,9 +93,9 @@ export default class TogglNotesPlugin extends Plugin {
           const time_entry = await this.togglManager.startTimer(file.path);
           this.frontmatter.add(file, time_entry.id);
 
-          const item = this.addStatusBarItem();
-          item.empty()
-          item.createEl("span", { text: "🟢 toggl is running" });
+          
+          this.statusBarItem.empty()
+          this.statusBarItem.createEl("span", { text: "🟢 toggl is running" });
           new Notice("▶ time entries was started");
         }
       }
@@ -100,14 +106,21 @@ export default class TogglNotesPlugin extends Plugin {
       name: "Stop current toggl timer",
       callback: async () => {
         if (await this.togglManager.stopTimer()) { // if timer was running
-          const item = this.addStatusBarItem();
-          item.empty()
-          item.createEl("span", { text: "⚪ toggl is stopped" });
+          this.statusBarItem.empty()
+          this.statusBarItem.createEl("span", { text: "⚪ toggl is stopped" });
 
           new Notice("▶ time entries was stopped");
         }
       }
     });
+
+    if (!this.settings.apiToken) {
+      this.statusBarItem.empty()
+      this.statusBarItem.createEl("span", { text: "❗set api token" });
+      return
+    }
+
+    this.togglManager = new TogglManager(this.settings.apiToken, this.settings.defaultWorkspaceId);
   }
 
   async loadSettings() {
@@ -148,5 +161,40 @@ export class TogglNotesTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    const workspaceSetting = new Setting(containerEl)
+      .setName("Default Workspace")
+      .setDesc("")
+      .addText((text) =>
+        text
+          .setPlaceholder("Your default workspace id")
+          .setValue(String(this.plugin.settings.defaultWorkspaceId) || "")
+          .setDisabled(true)
+      )
+      
+    new Setting(containerEl)
+      .addButton((button: ButtonComponent) => {
+        button.setButtonText("connect");
+        button.onClick(async () => {
+          const text = workspaceSetting.components[0] as TextComponent
+
+          try {
+            this.plugin.togglManager = new TogglManager(this.plugin.settings.apiToken)
+            const defaultWorkspaceId = (await this.plugin.togglManager.getUserInfo())['default_workspace_id'];
+            this.plugin.settings.defaultWorkspaceId = defaultWorkspaceId;
+            await this.plugin.saveSettings();
+            
+            this.plugin.togglManager.defaultWorkspaceId = defaultWorkspaceId;
+
+            text.setValue(String(this.plugin.settings.defaultWorkspaceId))
+            this.plugin.statusBarItem.empty()
+          } catch (e) {
+
+            text.setValue(`${e}`)
+          }
+
+        });
+        button.setCta();
+      })
   }
 }

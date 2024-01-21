@@ -78,8 +78,14 @@ export default class TogglApiClient {
             requestParams.body = JSON.stringify(body)
         }
 
+        
         const response = await requestUrl(requestParams);
-        return response.json as T
+        if (response.status === 200) {
+            return response.json as T
+        } else {
+            throw response.text
+        }
+     
     }
 
     public async getUserInfo(): Promise<IMe> {
