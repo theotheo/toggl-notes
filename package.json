@@ -15,10 +15,10 @@
     "@stylistic/eslint-plugin": "latest",
     "@tsconfig/strictest": "latest",
     "@types/eslint": "latest",
-    "@types/node": "^20.11.5",
+    "@types/node": "latest",
     "@types/obsidian-typings": "github:Fevol/obsidian-typings",
     "@typescript-eslint/eslint-plugin": "latest",
-    "@typescript-eslint/parser": "^6.19.0",
+    "@typescript-eslint/parser": "latest",
     "builtin-modules": "latest",
     "esbuild": "latest",
     "eslint": "latest",
@@ -30,8 +30,5 @@
     "obsidian": "latest",
     "tsx": "latest"
   },
-  "type": "module",
-  "dependencies": {
-    "toggl-track": "^0.8.0"
-  }
+  "type": "module"
 }

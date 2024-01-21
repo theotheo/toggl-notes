@@ -1,4 +1,3 @@
-import moment from "moment";
 import {
   Plugin,
   Notice,
@@ -7,10 +6,7 @@ import {
   Setting,
   TFile
 } from "obsidian";
-import {
-  ITimeEntry,
-  Toggl
-} from "toggl-track";
+import TogglApiClient, { ITimeEntry } from "./TogglClient.js"
 
 interface TogglNotesSettings {
   apiToken: string;
@@ -21,37 +17,26 @@ const DEFAULT_SETTINGS: Partial<TogglNotesSettings> = {
 };
 
 class TogglManager {
-  private client: Toggl;
+  private client: TogglApiClient;
 
   constructor(token: string) {
-    this.client = new Toggl({
-      auth: {
-        token: token
-      },
-    });
-
+    this.client = new TogglApiClient(token);
   }
 
   public async startTimer(description: string): Promise<ITimeEntry> {
-    const togglParams = await this.client.me.get();
-    const defaultWorkspaceId = togglParams["default_workspace_id"];
+    const userInfo = await this.client.getUserInfo()
+    const defaultWorkspaceId = userInfo["default_workspace_id"];
 
-    const time_entry = await this.client.timeEntry.create(defaultWorkspaceId, {
-      "description": description,
-      "created_with": "Toggl Notes",
-      "start": moment().format(),
-      "workspace_id": defaultWorkspaceId,
-      "duration": -1
-    });
+    const timeEntry = await this.client.createTimeEntry(description, defaultWorkspaceId)
 
-    return time_entry;
+    return timeEntry;
   }
 
   public async stopTimer(): Promise<boolean> {
-    const currentEntry = await this.client.timeEntry.current();
+    const currentEntry = await this.client.getCurrentTimeEntry();
 
     if (currentEntry) { // if timer is running
-      await this.client.timeEntry.stop(currentEntry.id, currentEntry.workspace_id);
+      await this.client.stopTimeEntry(currentEntry.id, currentEntry.workspace_id);
 
       return true;
     }
@@ -88,10 +73,9 @@ export default class TogglNotesPlugin extends Plugin {
     await this.loadSettings();
 
     this.addSettingTab(new TogglNotesTab(this.app, this));
-
-    this.togglManager = new TogglManager(this.settings.apiToken);
+    
+    this.togglManager = new TogglManager(this.settings.apiToken);    
     this.frontmatter = new FrontMatterManager(this.app);
-
 
     this.addCommand({
       id: "start-toggl",
