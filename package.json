@@ -1,6 +1,6 @@
 {
   "name": "toggl-notes",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Integrate Toggl time tracking into note-taking",
   "scripts": {
     "build": "tsc --build && tsx esbuild.config.ts production",
