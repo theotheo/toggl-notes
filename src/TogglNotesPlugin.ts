@@ -1,3 +1,4 @@
+import moment from "moment";
 import {
   Plugin,
   Notice,
@@ -8,7 +9,7 @@ import {
   ButtonComponent,
   TextComponent
 } from "obsidian";
-import TogglApiClient, { ITimeEntry } from "./TogglClient.js"
+import TogglApiClient, { ITimeEntry, IBatchOperationParam } from "./TogglClient.js"
 
 interface TogglNotesSettings {
   apiToken: string;
@@ -20,8 +21,8 @@ const DEFAULT_SETTINGS: Partial<TogglNotesSettings> = {
 };
 
 class TogglManager {
-  private client: TogglApiClient;
-  public defaultWorkspaceId!: number;
+  client: TogglApiClient;
+  defaultWorkspaceId!: number;
 
   constructor(token: string, defaultWorkspaceId: number | undefined = undefined) {
     if (defaultWorkspaceId) {
@@ -65,6 +66,16 @@ class FrontMatterManager {
     time_entries.push(String(id)); // frontmatter don't good with number
     await this.app.fileManager.processFrontMatter(file, (fm) => fm[this.field] = time_entries);
   }
+
+  public async set(file: TFile, ids: number[]) {
+    // const fm = this.app.metadataCache.getCache(file.path)?.frontmatter || {};
+    await this.app.fileManager.processFrontMatter(file, (fm) => fm[this.field] = ids.map(e => String(e)) );
+  }
+
+  public all(file: TFile) {
+    const fm = this.app.metadataCache.getCache(file.path)?.frontmatter || {};
+    return fm[this.field];
+  }
 }
 
 export default class TogglNotesPlugin extends Plugin {
@@ -96,7 +107,7 @@ export default class TogglNotesPlugin extends Plugin {
           
           this.statusBarItem.empty()
           this.statusBarItem.createEl("span", { text: "🟢 toggl is running" });
-          new Notice("▶ time entries was started");
+          new Notice("✅ time entries was started");
         }
       }
     });
@@ -109,10 +120,87 @@ export default class TogglNotesPlugin extends Plugin {
           this.statusBarItem.empty()
           this.statusBarItem.createEl("span", { text: "⚪ toggl is stopped" });
 
-          new Notice("▶ time entries was stopped");
+          new Notice("✅ time entries was stopped");
         }
       }
     });
+
+    this.addCommand({
+      id: "push-toggl",
+      name: "Update toggl time entries with note data",
+      callback: async () => {
+        const file = this.app.workspace.getActiveFile();
+
+        if (file) {
+          const timeEntriesIds = this.frontmatter.all(file)
+
+          if (!timeEntriesIds) {
+      
+              new Notice(`🚫 entities not found`)
+              return
+          }
+      
+          let ops: IBatchOperationParam[]  = []
+      
+          const updatePathOp: IBatchOperationParam = {
+              "op": "replace",
+              "path": "/description",
+              "value": file?.path || ''
+          }
+      
+          ops.push(updatePathOp)
+  
+          // const projectName = path.split('/')[1]
+          // if(projectName) {
+          //     const projects = await togglApi._api.get('me/projects')
+          //     let project = projects.find(p => p.name == projectName)
+          //     if (project === undefined) {
+          //         project = await togglApi._api.post(`workspaces/${workspace_id}/projects`, {name: projectName})
+          //     }
+      
+          //     const updateProjectOp = {
+          //         "op": "replace",
+          //         "path": "/project_id",
+          //         "value": project.id
+          //     }
+      
+          //     ops.push(updateProjectOp)
+          // }    
+              
+          await this.togglManager.client.updateTimeEntries(timeEntriesIds, this.togglManager.defaultWorkspaceId, ops)
+          new Notice(`✅ ${timeEntriesIds.length} entities was updated`)
+        }
+      }
+    });
+
+    this.addCommand({
+      id: "pull-toggl",
+      name: "Pull from Toggl (Update notes with toggl info)",
+      callback: async () => {
+        const file = this.app.workspace.getActiveFile()
+        
+        if (file) {
+          const stem = file.name.toLowerCase().replace(/.[a-z]+$/, '')
+
+          const matchFunction = (entry: ITimeEntry): boolean  => {
+            const normalizedName = entry.description.toLowerCase()
+            return normalizedName.contains(stem)
+          }
+
+          const allEntries = await this.togglManager.client.getEntries(
+              moment().subtract(3, 'month'),
+              moment().add(1, 'day'),
+            );
+      
+          const relatedEntries = allEntries.filter(matchFunction)
+      
+          this.frontmatter.set(file, relatedEntries.map(e => e.id))
+          
+          new Notice(`✅ ${relatedEntries.length} time entries updated`)
+        }
+      }
+
+    })
 
     if (!this.settings.apiToken) {
       this.statusBarItem.empty()

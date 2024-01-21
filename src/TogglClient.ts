@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment, { Moment } from 'moment';
 import { requestUrl, RequestUrlParam } from 'obsidian';
 
 export interface ITimeEntry {
@@ -40,6 +40,15 @@ export interface IMe {
 	options: any;
 	timezone: string;
 	updated_at: string; // format: date-time
+}
+export interface IBatchOperationParam {
+    op: 'add' | 'remove' | 'replace';
+    path: `/${keyof ITimeEntry}`; // The path to the entity to patch (e.g. /description)
+    value?: string;
+}
+
+export interface IBatchOperation {
+    success: number[]
 }
 
 export default class TogglApiClient {
@@ -104,12 +113,22 @@ export default class TogglApiClient {
         return await this.request<ITimeEntry>(`workspaces/${workspaceId}/time_entries`, "POST", body);
     }
 
+    public async updateTimeEntries(timeEntriesIds: number[], workspaceId: number, ops: IBatchOperationParam[]): Promise<IBatchOperation> {
+        return await this.request<IBatchOperation>(`workspaces/${workspaceId}/time_entries/${timeEntriesIds.join(',')}`, 'PATCH', ops);
+    }
+
     async stopTimeEntry(entryId: number, workspaceId: number): Promise<ITimeEntry> {
         return await this.request<ITimeEntry>(`workspaces/${workspaceId}/time_entries/${entryId}/stop`, "PATCH");
     }
 
     async getCurrentTimeEntry(): Promise<ITimeEntry> {
         return await this.request<ITimeEntry>(`me/time_entries/current`, "GET");
+    }
+
+    async getEntries(start_date: Moment, end_date: Moment): Promise<ITimeEntry[]> { 
+        const params = new URLSearchParams({start_date: start_date.format('YYYY-MM-DD'), end_date: end_date.format('YYYY-MM-DD') });
+
+        return await this.request<ITimeEntry[]>(`me/time_entries?${params}`, "GET")
     }
 }
 
