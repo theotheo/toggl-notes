@@ -76,11 +76,29 @@ class FrontMatterManager {
     const fm = this.app.metadataCache.getCache(file.path)?.frontmatter || {};
     return fm[this.field];
   }
+
+  public getNames(file: TFile) {
+    const stem = file.name.replace(/.[a-z]+$/i, '')
+    let possibleNames = [stem]
+  
+    const fm = this.app.metadataCache.getCache(file.path)?.frontmatter || {}
+    const fields = ['aliases', 'title']
+    fields.forEach(field => {
+      if (fm[field]) {
+        possibleNames = possibleNames.concat(fm[field])
+      }
+    });
+
+    possibleNames = possibleNames.map(n => n.toLowerCase())
+  
+    return possibleNames
+  }
 }
 
 function getCategory(file: TFile): string | undefined {
   return file.path.split('/')[1]
 }
+
 
 export default class TogglNotesPlugin extends Plugin {
   settings!: TogglNotesSettings;
@@ -185,11 +203,11 @@ export default class TogglNotesPlugin extends Plugin {
         const file = this.app.workspace.getActiveFile()
         
         if (file) {
-          const stem = file.name.toLowerCase().replace(/.[a-z]+$/, '')
+          const names = this.frontmatter.getNames(file)
 
-          const matchFunction = (entry: ITimeEntry): boolean  => {
+          const matchFunction = (entry: ITimeEntry): boolean => {
             const normalizedName = entry.description.toLowerCase()
-            return normalizedName.contains(stem)
+            return names.contains(normalizedName)
           }
 
           const allEntries = await this.togglManager.client.getEntries(
