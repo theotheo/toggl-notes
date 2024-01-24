@@ -78,6 +78,10 @@ class FrontMatterManager {
   }
 }
 
+function getCategory(file: TFile): string | undefined {
+  return file.path.split('/')[1]
+}
+
 export default class TogglNotesPlugin extends Plugin {
   settings!: TogglNotesSettings;
   togglManager!: TogglManager;
@@ -150,22 +154,23 @@ export default class TogglNotesPlugin extends Plugin {
       
           ops.push(updatePathOp)
   
-          // const projectName = path.split('/')[1]
-          // if(projectName) {
-          //     const projects = await togglApi._api.get('me/projects')
-          //     let project = projects.find(p => p.name == projectName)
-          //     if (project === undefined) {
-          //         project = await togglApi._api.post(`workspaces/${workspace_id}/projects`, {name: projectName})
-          //     }
+          const category = getCategory(file)
+          
+          if(category) {
+              const projects = await this.togglManager.client.getProjects()
+              let project = projects.find(p => p.name == category)
+              if (!project) {
+                  project = await this.togglManager.client.createProject(category, this.togglManager.defaultWorkspaceId)
+              }
       
-          //     const updateProjectOp = {
-          //         "op": "replace",
-          //         "path": "/project_id",
-          //         "value": project.id
-          //     }
+              const updateProjectOp: IBatchOperationParam = {
+                  "op": "replace",
+                  "path": "/project_id",
+                  "value": project.id
+              }
       
-          //     ops.push(updateProjectOp)
-          // }    
+              ops.push(updateProjectOp)
+          }    
               
           await this.togglManager.client.updateTimeEntries(timeEntriesIds, this.togglManager.defaultWorkspaceId, ops)
           new Notice(`✅ ${timeEntriesIds.length} entities was updated`)

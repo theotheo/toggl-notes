@@ -41,10 +41,55 @@ export interface IMe {
 	timezone: string;
 	updated_at: string; // format: date-time
 }
+
+export interface IProject {
+    active: boolean;
+    actual_hours: number | null;
+    actual_seconds: number | null;
+    at: string;
+    auto_estimates: boolean | null;
+    billable: boolean | null;
+    cid: number;
+    client_id: number | null;
+    color: string;
+    created_at: string;
+    currency: string | null;
+    current_period: {
+        end_date: string;
+        start_date: string;
+    } | null;
+    end_date: string;
+    estimated_hours: number | null;
+    estimated_seconds: number | null;
+    fixed_fee: number;
+    id: number;
+    is_private: boolean;
+    name: string;
+    permissions: string;
+    rate: number;
+    rate_last_updated: string | null;
+    recurring: boolean;
+    recurring_parameters: {
+        custom_period: number;
+        estimated_seconds: number;
+        parameter_end_date: string | null;
+        parameter_start_date: string;
+        period: string;
+        project_start_date: string;
+    }[] | null;
+    server_deleted_at: string | null;
+    start_date: string;
+    status: string;
+    template: boolean | null;
+    template_id: number | null;
+    wid: number;
+    workspace_id: number;
+}
+
 export interface IBatchOperationParam {
     op: 'add' | 'remove' | 'replace';
     path: `/${keyof ITimeEntry}`; // The path to the entity to patch (e.g. /description)
-    value?: string;
+    value?: string | number;
 }
 
 export interface IBatchOperation {
@@ -129,6 +174,14 @@ export default class TogglApiClient {
         const params = new URLSearchParams({start_date: start_date.format('YYYY-MM-DD'), end_date: end_date.format('YYYY-MM-DD') });
 
         return await this.request<ITimeEntry[]>(`me/time_entries?${params}`, "GET")
+    }
+
+    async createProject(projectName: string, workspaceId: number): Promise<IProject> {
+        return await this.request<IProject>(`workspaces/${workspaceId}/projects`, 'POST', { name: projectName })
+    }
+
+    async getProjects(): Promise<IProject[]> {
+        return await this.request<IProject[]>(`me/projects`, "GET")
     }
 }
 
