@@ -77,8 +77,12 @@ class FrontMatterManager {
     return fm[this.field];
   }
 
+  public getName(file: TFile) {
+    return file.name.replace(/.[a-z]+$/i, '')
+  }
+
   public getNames(file: TFile) {
-    const stem = file.name.replace(/.[a-z]+$/i, '')
+    const stem = this.getName(file)
     let possibleNames = [stem]
   
     const fm = this.app.metadataCache.getCache(file.path)?.frontmatter || {}
@@ -155,6 +159,7 @@ export default class TogglNotesPlugin extends Plugin {
 
         if (file) {
           const timeEntriesIds = this.frontmatter.all(file)
+          const name = this.frontmatter.getName(file)
 
           if (!timeEntriesIds) {
       
@@ -167,7 +172,7 @@ export default class TogglNotesPlugin extends Plugin {
           const updatePathOp: IBatchOperationParam = {
               "op": "replace",
               "path": "/description",
-              "value": file?.path || ''
+              "value": name
           }
       
           ops.push(updatePathOp)
