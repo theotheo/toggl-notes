@@ -62,7 +62,7 @@ class FrontMatterManager {
 
   public async add(file: TFile, id: number) {
     const fm = this.app.metadataCache.getCache(file.path)?.frontmatter || {};
-    const time_entries: string[] = fm[this.field];
+    const time_entries: string[] = fm[this.field] || [];
     time_entries.push(String(id)); // frontmatter don't good with number
     await this.app.fileManager.processFrontMatter(file, (fm) => fm[this.field] = time_entries);
   }
