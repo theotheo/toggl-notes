@@ -2,44 +2,110 @@ import moment, { Moment } from 'moment';
 import { requestUrl, RequestUrlParam } from 'obsidian';
 
 export interface ITimeEntry {
-	at: string;
-	billable: boolean;
-	description: string;
-	duration: number; // DurationInSeconds for running entries should be -1 * (Unix start time).
-	duronly: boolean;
-	id: number;
-	pid: number;
-	project_id: number;
-	server_deleted_at: string;
-	start: string;
-	stop: string;
-	tag_ids?: number[]; // NOTE: Toggl's API docs does not specify the type
-	tags?: string[]; // NOTE: Toggl's API docs does not specify the type
-	task_id: number | null;
-	tid: number;
-	uid: number;
-	user_id: number;
-	wid: number;
-	workspace_id: number;
+    at: string;
+    billable: boolean;
+    description: string;
+    duration: number; // DurationInSeconds for running entries should be -1 * (Unix start time).
+    duronly: boolean;
+    id: number;
+    pid: number;
+    project_id: number;
+    server_deleted_at: string;
+    start: string;
+    stop: string;
+    tag_ids?: number[]; // NOTE: Toggl's API docs does not specify the type
+    tags?: string[]; // NOTE: Toggl's API docs does not specify the type
+    task_id: number | null;
+    tid: number;
+    uid: number;
+    user_id: number;
+    wid: number;
+    workspace_id: number;
 }
 
 export interface IMe {
-	api_token?: string;
-	at: string; // format: date-time
-	beginning_of_week: number;
-	country_id: number;
-	created_at: string; // format: date-time
-	default_workspace_id: number;
-	email: string; // format: email
-	fullname: string;
-	id: number;
-	image_url: string;
-	intercom_hash?: string;
-	openid_email: string; // format: email
-	openid_enabled: boolean;
-	options: any;
-	timezone: string;
-	updated_at: string; // format: date-time
+    api_token?: string;
+    at: string; // format: date-time
+    beginning_of_week: number;
+    country_id: number;
+    created_at: string; // format: date-time
+    default_workspace_id: number;
+    email: string; // format: email
+    fullname: string;
+    id: number;
+    image_url: string;
+    intercom_hash?: string;
+    openid_email: string; // format: email
+    openid_enabled: boolean;
+    options: any;
+    timezone: string;
+    updated_at: string; // format: date-time
+}
+export interface IWorkspace {
+    admin: boolean;
+    api_token: string; // Deprecated
+    at: string;
+    business_ws: boolean;
+    csv_upload: {
+        at: string;
+        log_id: number;
+    }[];
+    default_currency: string;
+    default_hourly_rate: number;
+    hide_start_end_times: boolean;
+    ical_enabled: boolean;
+    ical_url: string;
+    id: number;
+    last_modified: string;
+    logo_url: string;
+    max_data_retention_days: number;
+    name: string;
+    only_admins_may_create_projects: boolean;
+    only_admins_may_create_tags: boolean;
+    only_admins_see_billable_rates: boolean;
+    only_admins_see_team_dashboard: boolean;
+    organization_id: number;
+    permissions: string;
+    premium: boolean;
+    profile: number; // Deprecated
+    projects_billable_by_default: boolean;
+    projects_private_by_default: boolean;
+    rate_last_updated: string;
+    reports_collapse: boolean;
+    role: string;
+    rounding: number;
+    rounding_minutes: number;
+    server_deleted_at: string;
+    subscription: {
+        auto_renew: boolean;
+        card_details: any; // Use appropriate type for card_details
+        company_id: number;
+        contact_detail: any; // Use appropriate type for contact_detail
+        created_at: string;
+        currency: string;
+        customer_id: number;
+        deleted_at: string;
+        last_pricing_plan_id: number;
+        organization_id: number;
+        payment_details: any; // Use appropriate type for payment_details
+        pricing_plan_id: number;
+        renewal_at: string;
+        subscription_id: number;
+        subscription_period: any; // Use appropriate type for subscription_period
+        workspace_id: number;
+    }; // Deprecated
+    suspended_at: string;
+    te_constraints: {
+        name: string;
+        type: string;
+        description: string;
+        description_present: boolean;
+        project_present: boolean;
+        tag_present: boolean;
+        task_present: boolean;
+        time_entry_constraints_enabled: boolean;
+    };
+    working_hours_in_minutes: number;
 }
 
 export interface IProject {
@@ -144,10 +210,6 @@ export default class TogglApiClient {
 
     public async getUserInfo(): Promise<IMe> {
         return await this.request<IMe>("me", "GET");
-    }
-
-    async getWorkspaces(): Promise<IWorkspace> {
-        return await this.request<IWorkspace>(`me/workspaces`, "GET");
     }
 
     public async createTimeEntry(description: string, workspace_id: number, project_id?: number, start: string = moment().format(), duration: number = -1): Promise<ITimeEntry> {
