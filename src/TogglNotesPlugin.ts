@@ -9,7 +9,7 @@ import {
   ButtonComponent,
   TextComponent
 } from "obsidian";
-import TogglApiClient, { ITimeEntry, IBatchOperationParam } from "./TogglClient.js"
+import TogglApiClient, { ITimeEntry, IBatchOperationParam, IProject } from "./TogglClient.js"
 
 interface TogglNotesSettings {
   apiToken: string;
@@ -31,8 +31,8 @@ class TogglManager {
     this.client = new TogglApiClient(token);
   }
 
-  public async startTimer(description: string): Promise<ITimeEntry> {
-    return await this.client.createTimeEntry(description, this.defaultWorkspaceId)
+  public async startTimer(description: string, projectId?: number): Promise<ITimeEntry> {
+    return await this.client.createTimeEntry(description, this.defaultWorkspaceId, projectId)
   }
 
   public async stopTimer(): Promise<boolean> {
@@ -45,6 +45,16 @@ class TogglManager {
     }
 
     return false;
+  }
+
+  public async getProject(category: string): Promise<IProject> {
+    const projects = await this.client.getProjects()
+    let project = projects.find(p => p.name == category)
+    if (!project) {
+        project = await this.client.createProject(category, this.defaultWorkspaceId)
+    }
+    
+    return project
   }
 
   public async getUserInfo() {
@@ -97,12 +107,11 @@ class FrontMatterManager {
   
     return possibleNames
   }
+  
+  public getCategory(file: TFile): string | undefined {
+    return file.path.split('/')[1]
+  }
 }
-
-function getCategory(file: TFile): string | undefined {
-  return file.path.split('/')[1]
-}
-
 
 export default class TogglNotesPlugin extends Plugin {
   settings!: TogglNotesSettings;
@@ -127,7 +136,14 @@ export default class TogglNotesPlugin extends Plugin {
         const file = this.app.workspace.getActiveFile();
 
         if (file) {
-          const time_entry = await this.togglManager.startTimer(file.path);
+          const name = this.frontmatter.getName(file)
+          const category = this.frontmatter.getCategory(file)
+          let project;
+          if (category)  {
+             project = await this.togglManager.getProject(category)
+          }
+
+          const time_entry = await this.togglManager.startTimer(name, project?.id);
           this.frontmatter.add(file, time_entry.id);
 
           
@@ -177,14 +193,10 @@ export default class TogglNotesPlugin extends Plugin {
       
           ops.push(updatePathOp)
   
-          const category = getCategory(file)
+          const category = this.frontmatter.getCategory(file)
           
           if(category) {
-              const projects = await this.togglManager.client.getProjects()
-              let project = projects.find(p => p.name == category)
-              if (!project) {
-                  project = await this.togglManager.client.createProject(category, this.togglManager.defaultWorkspaceId)
-              }
+              const project = await this.togglManager.getProject(category)
       
               const updateProjectOp: IBatchOperationParam = {
                   "op": "replace",

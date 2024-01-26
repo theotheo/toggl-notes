@@ -146,16 +146,21 @@ export default class TogglApiClient {
         return await this.request<IMe>("me", "GET");
     }
 
-    public async createTimeEntry(description: string, workspaceId: number, start: string = moment().format(), duration: number = -1): Promise<ITimeEntry> {
+    async getWorkspaces(): Promise<IWorkspace> {
+        return await this.request<IWorkspace>(`me/workspaces`, "GET");
+    }
+
+    public async createTimeEntry(description: string, workspace_id: number, project_id?: number, start: string = moment().format(), duration: number = -1): Promise<ITimeEntry> {
         const body = {
-            description: description,
             created_with: "Toggl Notes",
-            start: start,
-            workspace_id: workspaceId,
-            duration: duration,
+            description,
+            start,
+            workspace_id,
+            duration,
+            project_id
         };
 
-        return await this.request<ITimeEntry>(`workspaces/${workspaceId}/time_entries`, "POST", body);
+        return await this.request<ITimeEntry>(`workspaces/${workspace_id}/time_entries`, "POST", body);
     }
 
     public async updateTimeEntries(timeEntriesIds: number[], workspaceId: number, ops: IBatchOperationParam[]): Promise<IBatchOperation> {
